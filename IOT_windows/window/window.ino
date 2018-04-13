@@ -21,7 +21,7 @@ int alertLightLed = 8; // digital pin 8 - alert o/p
 int alertRainLed = 9; // digital pin 9 - alert o/p
 int alertCommonLed = 7; // digital pin 7 - alert o/p
 
-
+int alertOpenWindowLed = 6; // digital pin 6 - alert o/p
 
 
 int lightSens;
@@ -43,11 +43,13 @@ unsigned long previousAutoSignal = 0;
 
 
 
-const long INTERVAL_AUTO_SEND = 30000;           // interval suto send every 2h
+const long INTERVAL_AUTO_SEND_OPEN = 20000;           // interval suto send every 2h
+const long INTERVAL_AUTO_SEND_CLOSE = 10000;           // interval suto send every 2h
 const long INTERVAL = 0;           // interval for checking sensors
 
 
 boolean sendSignal = false;
+boolean sendSignalOpenClose = false;
 boolean signal_Already_Sent = false;
 boolean needSendAutoSignal = false;
 
@@ -79,15 +81,13 @@ void setup() {
   pinMode(alertRainLed, OUTPUT);
   pinMode(alertCommonLed, OUTPUT);
 
+  pinMode(alertOpenWindowLed, OUTPUT);
+
   sendSignal = false;
   signal_Already_Sent = false;
   previousAutoSignal = millis();
 
   Serial.println("****************************************************** \nSETTINGS: \n******************************************************" );
-
-  Serial.print("SIGNAL AUTO-SEND INTERVAL: ");
-  Serial.print(INTERVAL_AUTO_SEND / 1000);
-  Serial.print(" s \n");
 
   Serial.print("RAIN THRESHOLD: ");
   Serial.print(RAIN_THRESHOLD_LEVEL);
@@ -95,6 +95,16 @@ void setup() {
 
   Serial.print("LIGHT THRESHOLD: ");
   Serial.print(LIGHT_THRESHOLD_LEVEL);
+  Serial.print("  \n");
+
+  Serial.print("AUTO OPEN: ");
+  Serial.print(INTERVAL_AUTO_SEND_OPEN / 1000);
+  Serial.print("  s\n");
+
+  Serial.print("AUTO CLOSE: ");
+  Serial.print(INTERVAL_AUTO_SEND_CLOSE / 1000);
+  Serial.print("  s");
+  
   Serial.print("  \n****************************************************** \n \n");
 
 
@@ -107,6 +117,10 @@ void loop() {
   lightSens = analogRead(photoRPin);
   rainSens = analogRead(rainRPin);
 
+  //need delete
+  lightSens = 500;
+  rainSens = 800;
+
   sendMessageEverySec();
 
 
@@ -118,8 +132,8 @@ void loop() {
 
 
   //send signal every 2 h
-  sendAutoSignal();
-
+  //sendAutoSignal();
+  sendAutoSignalOpen();
 
 
   //slow down the transmission for effective Serial communication.
@@ -172,31 +186,66 @@ boolean checkRain(int value) {
 }
 
 
-void sendAutoSignal () {
+void sendAutoSignalOpen () {
   needSendAutoSignal = false;
-  if (currentMillis > previousAutoSignal + INTERVAL_AUTO_SEND && !signal_Already_Sent) {
+  if (currentMillis > previousAutoSignal + INTERVAL_AUTO_SEND_OPEN && !signal_Already_Sent) {
     previousAutoSignal = currentMillis;
     needSendAutoSignal = true;
   } else {
     needSendAutoSignal = false;
   }
 
-  if (!sendSignal && needSendAutoSignal) {
-    sendSignal = true;
+  //OPEN BEGIN
+  if (!sendSignalOpenClose && needSendAutoSignal) {
+    sendSignalOpenClose = true;
     sendCloseWindowsSignal_START = currentMillis;
-    digitalWrite(alertCommonLed, HIGH);
-  } else if (sendSignal && currentMillis > sendCloseWindowsSignal_START + 1990 && currentMillis < sendCloseWindowsSignal_START + 3990 ) {
-    digitalWrite(alertCommonLed, LOW);
+    digitalWrite(alertOpenWindowLed, HIGH);
+   // Serial.print("OPEN 1");
+  } else if (sendSignalOpenClose && currentMillis > sendCloseWindowsSignal_START + 1990 && currentMillis < sendCloseWindowsSignal_START + 3990 ) {
+    digitalWrite(alertOpenWindowLed, LOW);
+    //Serial.print("OPEN 2");
   }
-  else if (sendSignal && currentMillis > sendCloseWindowsSignal_START + 3990 && currentMillis < sendCloseWindowsSignal_START + 5990 ) {
-    digitalWrite(alertCommonLed, HIGH);
+  else if (sendSignalOpenClose && currentMillis > sendCloseWindowsSignal_START + 3990 && currentMillis < sendCloseWindowsSignal_START + 5990 ) {
+    digitalWrite(alertOpenWindowLed, HIGH);
+    //Serial.print("OPEN 3");
+
   }
-  else if (sendSignal && currentMillis > sendCloseWindowsSignal_START + 5990) {
+  else if (sendSignalOpenClose && currentMillis > sendCloseWindowsSignal_START + 5990 && currentMillis < sendCloseWindowsSignal_START + INTERVAL_AUTO_SEND_CLOSE) {
+    digitalWrite(alertOpenWindowLed, LOW);
+   // Serial.print("OPEN 4");
+
+    //sendSignalOpenClose = false;
+    //previousAutoSignal = millis();
+  }
+  //OPEN END
+
+  //close WINDOWS BEGIN
+  else if (sendSignalOpenClose && currentMillis >= sendCloseWindowsSignal_START + INTERVAL_AUTO_SEND_CLOSE && currentMillis < sendCloseWindowsSignal_START + INTERVAL_AUTO_SEND_CLOSE + 1990) {
+    digitalWrite(alertCommonLed, HIGH);
+    //Serial.print("CLOSE 1");
+    //sendSignalOpenClose = false;
+    //previousAutoSignal = millis();
+  }
+  else if (sendSignalOpenClose && currentMillis > sendCloseWindowsSignal_START + INTERVAL_AUTO_SEND_CLOSE + 1990 && currentMillis < sendCloseWindowsSignal_START + INTERVAL_AUTO_SEND_CLOSE + 3990) {
     digitalWrite(alertCommonLed, LOW);
-    sendSignal = false;
+   // Serial.print("CLOSE 2");
+    //sendSignalOpenClose = false;
+    //previousAutoSignal = millis();
+  }
+  else if (sendSignalOpenClose && currentMillis > sendCloseWindowsSignal_START + INTERVAL_AUTO_SEND_CLOSE + 3990 && currentMillis < sendCloseWindowsSignal_START + INTERVAL_AUTO_SEND_CLOSE + 5990) {
+    digitalWrite(alertCommonLed, HIGH);
+    //Serial.print("CLOSE 3");
+    //sendSignalOpenClose = false;
+    //previousAutoSignal = millis();
+  }
+  else if (sendSignalOpenClose && currentMillis > sendCloseWindowsSignal_START + INTERVAL_AUTO_SEND_CLOSE + 5990) {
+    digitalWrite(alertCommonLed, LOW);
+    //Serial.print("CLOSE 4");
+    sendSignalOpenClose = false;
     previousAutoSignal = millis();
   }
 }
+
 
 void sendCloseWindowsSignal(boolean needSend) {
 
@@ -214,6 +263,7 @@ void sendCloseWindowsSignal(boolean needSend) {
   else if (sendSignal && currentMillis > sendCloseWindowsSignal_START + 5990) {
     digitalWrite(alertCommonLed, LOW);
     sendSignal = false;
+    previousAutoSignal = millis();
   }
 
   if (!signal_Already_Sent && needSend) {
