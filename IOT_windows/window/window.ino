@@ -43,8 +43,8 @@ unsigned long previousAutoSignal = 0;
 
 
 
-const long INTERVAL_AUTO_SEND_OPEN = 20000;           // interval suto send every 2h
-const long INTERVAL_AUTO_SEND_CLOSE = 10000;           // interval suto send every 2h
+const long INTERVAL_AUTO_SEND_OPEN = 7200000;           // interval suto send every 2h
+const long INTERVAL_AUTO_SEND_CLOSE = 900000;           // interval suto send every 2h
 const long INTERVAL = 0;           // interval for checking sensors
 
 
@@ -118,13 +118,14 @@ void loop() {
   rainSens = analogRead(rainRPin);
 
   //need delete
-  lightSens = 650;
-  rainSens = 800;
+  //lightSens = 650;
+  //rainSens = 800;
 
   sendMessageEverySec();
 
-
-  if (checkLight(lightSens) || checkRain(rainSens)) {
+boolean light = checkLight(lightSens);
+boolean rain = checkRain(rainSens);
+  if (light || rain) {
     sendCloseWindowsSignal(true);
   } else {
     sendCloseWindowsSignal(false);
@@ -244,6 +245,8 @@ void sendAutoSignalOpen () {
     sendSignalOpenClose = false;
     previousAutoSignal = millis();
   }
+
+   //close WINDOWS END
 }
 
 
@@ -263,13 +266,18 @@ void sendCloseWindowsSignal(boolean needSend) {
   else if (sendSignal && currentMillis > sendCloseWindowsSignal_START + 5990) {
     digitalWrite(alertCommonLed, LOW);
     sendSignal = false;
-    previousAutoSignal = millis();
+    //previousAutoSignal = millis();
   }
+  
+  if(needSend){
+    previousAutoSignal = millis();
+    }
 
   if (!signal_Already_Sent && needSend) {
     signal_Already_Sent = true;
   } else if (signal_Already_Sent && !needSend) {
     signal_Already_Sent = false;
+    
   }
 }
 
