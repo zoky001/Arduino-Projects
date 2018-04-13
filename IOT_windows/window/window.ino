@@ -118,7 +118,7 @@ void loop() {
   rainSens = analogRead(rainRPin);
 
   //need delete
-  lightSens = 500;
+  lightSens = 650;
   rainSens = 800;
 
   sendMessageEverySec();
@@ -196,7 +196,7 @@ void sendAutoSignalOpen () {
   }
 
   //OPEN BEGIN
-  if (!sendSignalOpenClose && needSendAutoSignal) {
+  if (!sendSignalOpenClose && needSendAutoSignal && !sendSignal) {
     sendSignalOpenClose = true;
     sendCloseWindowsSignal_START = currentMillis;
     digitalWrite(alertOpenWindowLed, HIGH);
